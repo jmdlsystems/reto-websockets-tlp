@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
-	
+
 )
 
 func main() {
@@ -23,6 +23,6 @@ func main() {
 		http.ServeFile(w, r, "index.html")
 	})
 	
-	log.Println("Servidor de chat iniciado en :8080")
+	log.Println("Jose santamaria Servidor de chat iniciado en :8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
