@@ -24,9 +24,9 @@ type Hub struct {
 func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[*Client]bool),
-		broadcast:  make(chan *Message, 256),
-		register:   make(chan *Client, 64),
-		unregister: make(chan *Client, 64),
+		broadcast:  make(chan *Message, 256), // Buffer para evitar bloqueos
+		register:   make(chan *Client, 256),
+		unregister: make(chan *Client, 256),
 	}
 }
 
