@@ -10,16 +10,12 @@ import (
 type Hub struct {
 	// Clientes registrados
 	clients map[*Client]bool
-	
 	// Canal para mensajes que se difunden a todos los clientes
 	broadcast chan *Message
-	
 	// Canal para registrar nuevos clientes
 	register chan *Client
-	
 	// Canal para desregistrar clientes
 	unregister chan *Client
-	
 	// Mutex para proteger el acceso concurrente a los clientes
 	clientsMutex sync.RWMutex
 }
@@ -28,9 +24,9 @@ type Hub struct {
 func NewHub() *Hub {
 	return &Hub{
 		clients:    make(map[*Client]bool),
-		broadcast:  make(chan *Message),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
+		broadcast:  make(chan *Message, 256),
+		register:   make(chan *Client, 64),
+		unregister: make(chan *Client, 64),
 	}
 }
 

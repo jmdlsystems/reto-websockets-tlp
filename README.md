@@ -225,3 +225,45 @@ Las contribuciones son bienvenidas. Por favor:
 ## Licencia
 
 Este proyecto está bajo la Licencia MIT.
+
+## Interfaz Web Moderna y Responsive
+
+La interfaz web ha sido rediseñada para ser completamente responsiva y moderna, sin utilizar frameworks externos como Tailwind. Se emplea CSS puro con variables, media queries y técnicas modernas para asegurar una experiencia óptima en cualquier dispositivo:
+
+- **Variables CSS**: Uso de `:root` para definir colores, sombras y radios reutilizables.
+- **Diseño adaptable**: Media queries para pantallas grandes, tablets y móviles.
+- **Componentes visuales**: Inputs, botones y mensajes con estilos modernos y animaciones sutiles.
+- **Scroll personalizado**: Barra de desplazamiento estilizada para el área de mensajes.
+- **Soporte para emojis y avatares**: Mejoras visuales en los nombres de usuario y mensajes del sistema.
+- **Prevención de zoom en iOS**: Ajustes para evitar el zoom automático al enfocar inputs en dispositivos Apple.
+
+### Ejemplo de Responsividad
+
+- En PC: El chat se muestra centrado, con bordes redondeados y sombras.
+- En tablets: El contenedor se ajusta a la pantalla, manteniendo la legibilidad y el espacio.
+- En móviles: El chat ocupa todo el ancho y alto, los inputs y botones se agrandan para facilitar el uso táctil.
+
+## Diseño de Interfaz
+
+La interfaz está compuesta por:
+
+- **Formulario de login**: Centrado, con fondo blanco, sombra y bordes suaves. Inputs y botón grandes y accesibles.
+- **Cabecera del chat**: Barra superior con gradiente, nombre del chat y estado de conexión (con colores y emojis).
+- **Área de mensajes**: Fondo claro, mensajes con animación de aparición, diferenciación visual entre mensajes de usuario y del sistema.
+- **Input de mensaje**: Barra inferior fija, con campo de texto y botón de envío grande y táctil.
+- **Visualización del usuario**: El nombre de usuario se muestra en la barra de input, con icono.
+
+## Accesibilidad y Experiencia de Usuario (UX)
+
+- **Contraste alto**: Colores pensados para buena legibilidad.
+- **Inputs grandes**: Fáciles de usar en pantallas táctiles.
+- **Animaciones suaves**: Mejoran la percepción de interacción sin distraer.
+- **Feedback visual**: Estados de conexión/desconexión claros y visibles.
+- **Soporte para teclado**: Puedes enviar mensajes con Enter y navegar con Tab.
+- **Prevención de zoom en iOS**: Mejora la experiencia en iPhone/iPad.
+
+## Cómo Probar la Responsividad
+
+1. Abre el chat en tu navegador de escritorio y reduce el tamaño de la ventana.
+2. Prueba en un móvil o usa las herramientas de "Vista Responsive" de tu navegador (F12 > Toggle Device Toolbar).
+3. Verifica que todos los elementos se adaptan, los botones son accesibles y el chat sigue siendo usable y atractivo.
