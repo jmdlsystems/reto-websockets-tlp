@@ -53,24 +53,36 @@ func (h *Hub) Run() {
 
 // registerClient registra un nuevo cliente
 func (h *Hub) registerClient(client *Client) {
-	h.clientsMutex.Lock()
-	h.clients[client] = true
-	clientCount := len(h.clients)
-	h.clientsMutex.Unlock()
-	
-	log.Printf("Cliente %s conectado. Total de clientes: %d", client.username, clientCount)
-	
-	// Notificar a todos los clientes que alguien se conectó
-	systemMessage := NewSystemMessage(fmt.Sprintf("%s se ha conectado", client.username))
-	
-	// Envío asíncrono para evitar bloqueos
-	go func() {
-		select {
-		case h.broadcast <- systemMessage:
-		case <-time.After(time.Second):
-			log.Printf("Timeout enviando mensaje de conexión para %s", client.username)
-		}
-	}()
+    h.clientsMutex.Lock()
+    for c := range h.clients {
+        if c.username == client.username {
+            h.clientsMutex.Unlock()
+            // Enviar mensaje de error y cerrar la conexión
+            go func() {
+                errMsg := NewSystemMessage("Este nombre de usuario ya está conectado. Elige otro.")
+                client.send <- errMsg
+                close(client.send)
+            }()
+            return
+        }
+    }
+    h.clients[client] = true
+    clientCount := len(h.clients)
+    h.clientsMutex.Unlock()
+    
+    log.Printf("Cliente %s conectado. Total de clientes: %d", client.username, clientCount)
+    
+    // Notificar a todos los clientes que alguien se conectó
+    systemMessage := NewSystemMessage(fmt.Sprintf("%s se ha conectado", client.username))
+    
+    // Envío asíncrono para evitar bloqueos
+    go func() {
+        select {
+        case h.broadcast <- systemMessage:
+        case <-time.After(time.Second):
+            log.Printf("Timeout enviando mensaje de conexión para %s", client.username)
+        }
+    }()
 }
 
 // unregisterClient desregistra un cliente

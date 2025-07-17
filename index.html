@@ -284,6 +284,17 @@
             display: none;
         }
 
+        /* Mensaje de error */
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ef9a9a;
+            font-size: 14px;
+        }
+
         /* RESPONSIVE DESIGN */
         @media (max-width: 900px) {
             .chat-container {
@@ -429,9 +440,10 @@
 <body>
     <!-- Formulario de login -->
     <div id="loginForm" class="login-form">
-        <h2>🚀 Bienvenido al Chat</h2>
+        <h2>Bienvenido al Chat</h2>
+        <div id="errorMessage" class="error-message hidden"></div>
         <input type="text" id="usernameLogin" placeholder="Ingresa tu nombre de usuario" maxlength="20">
-        <button onclick="connectToChat()">Conectar al Chat</button>
+        <button onclick="connectToChat()" id="connectButton">Conectar al Chat</button>
     </div>
 
     <!-- Interfaz del chat -->
@@ -457,6 +469,7 @@
         let socket = null;
         let username = '';
         let isConnected = false;
+        let connectionAttempted = false;
 
         // Elementos del DOM
         const loginForm = document.getElementById('loginForm');
@@ -467,21 +480,36 @@
         const sendButton = document.getElementById('sendButton');
         const chatMessages = document.getElementById('chatMessages');
         const connectionStatus = document.getElementById('connectionStatus');
+        const errorMessage = document.getElementById('errorMessage');
+        const connectButton = document.getElementById('connectButton');
+
+        // Mostrar mensaje de error
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
+        }
 
         // Conectar al chat
         function connectToChat() {
             const inputUsername = usernameLogin.value.trim();
             if (!inputUsername) {
-                alert('Por favor ingresa un nombre de usuario');
+                showError('Por favor ingresa un nombre de usuario');
+                return;
+            }
+
+            // Validar que el nombre no contenga caracteres especiales
+            if (!/^[a-zA-Z0-9_\-áéíóúñü\s]+$/i.test(inputUsername)) {
+                showError('El nombre solo puede contener letras, números, guiones y espacios');
                 return;
             }
 
             username = inputUsername;
-            usernameDisplay.textContent = `👤 ${username}`;
-            
-            // Ocultar formulario de login y mostrar chat
-            loginForm.classList.add('hidden');
-            chatContainer.classList.remove('hidden');
+            connectButton.disabled = true;
+            connectButton.textContent = 'Conectando...';
+            connectionAttempted = true;
             
             // Conectar al WebSocket
             connectWebSocket();
@@ -491,12 +519,19 @@
         function connectWebSocket() {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const wsUrl = `${protocol}//${window.location.host}/ws?username=${encodeURIComponent(username)}`;
+            
             socket = new WebSocket(wsUrl);
         
             socket.onopen = function(event) {
                 console.log('Conectado al servidor WebSocket');
                 isConnected = true;
                 updateConnectionStatus();
+                
+                // Ocultar formulario de login y mostrar chat
+                loginForm.classList.add('hidden');
+                chatContainer.classList.remove('hidden');
+                usernameDisplay.textContent = `👤 ${username}`;
+                
                 sendButton.disabled = false;
                 messageInput.focus();
             };
@@ -505,27 +540,85 @@
                 console.log('Mensaje recibido del servidor:', event.data);
                 try {
                     const message = JSON.parse(event.data);
+                    
+                    // Verificar si es un mensaje de error por usuario duplicado
+                    if (message.type === 'error' && message.error_type === 'duplicate_user') {
+                        handleDuplicateUser(message.message_content);
+                        return;
+                    }
+                    
+                    // Verificar si es un mensaje de sistema sobre usuario duplicado
+                    if (message.type === 'system' && message.message_content && 
+                        (message.message_content.includes('ya está conectado') || 
+                         message.message_content.includes('already connected') ||
+                         message.message_content.includes('nombre de usuario ya está en uso'))) {
+                        handleDuplicateUser(message.message_content);
+                        return;
+                    }
+                    
                     displayMessage(message);
                 } catch (e) {
                     console.error('Error al parsear el mensaje:', e, event.data);
-                    alert('Error al recibir mensaje del servidor. Revisa la consola para más detalles.');
+                    showError('Error al recibir mensaje del servidor');
                 }
             };
         
             socket.onclose = function(event) {
-                console.log('Conexión WebSocket cerrada');
+                console.log('Conexión WebSocket cerrada:', event.code, event.reason);
                 isConnected = false;
                 updateConnectionStatus();
                 sendButton.disabled = true;
-                setTimeout(connectWebSocket, 3000);
+                
+                // Si no se había conectado exitosamente, volver al login
+                if (!connectionAttempted || event.code === 1008) { // 1008 = Policy Violation
+                    handleDuplicateUser('No se pudo conectar al chat');
+                    return;
+                }
+                
+                // Intentar reconectar solo si había una conexión exitosa previa
+                if (connectionAttempted) {
+                    setTimeout(connectWebSocket, 3000);
+                }
             };
         
             socket.onerror = function(error) {
                 console.error('Error en WebSocket:', error);
                 isConnected = false;
                 updateConnectionStatus();
-                alert('Error de conexión con el servidor WebSocket.');
+                
+                if (!connectionAttempted) {
+                    handleDuplicateUser('Error de conexión con el servidor');
+                }
             };
+        }
+
+        // Manejar usuario duplicado
+        function handleDuplicateUser(message) {
+            console.log('Usuario duplicado detectado:', message);
+            
+            // Cerrar la conexión si existe
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+            
+            // Volver al formulario de login
+            chatContainer.classList.add('hidden');
+            loginForm.classList.remove('hidden');
+            
+            // Limpiar el input y mostrar error
+            usernameLogin.value = '';
+            showError('Ese nombre de usuario ya está en uso. Elige otro nombre.');
+            
+            // Resetear estados
+            isConnected = false;
+            connectionAttempted = false;
+            sendButton.disabled = true;
+            connectButton.disabled = false;
+            connectButton.textContent = 'Conectar al Chat';
+            
+            // Enfocar en el input
+            usernameLogin.focus();
         }
 
         // Actualizar estado de conexión
@@ -534,7 +627,7 @@
                 connectionStatus.textContent = '🟢 Conectado';
                 connectionStatus.className = 'connection-status connected';
             } else {
-                connectionStatus.textContent = '🔴 Reconectando...';
+                connectionStatus.textContent = '🔴 Desconectado';
                 connectionStatus.className = 'connection-status disconnected';
             }
         }
@@ -556,16 +649,25 @@
         // Mostrar mensaje en el chat
         function displayMessage(message) {
             console.log('Mostrando mensaje:', message);
+            // Validación: si el mensaje de sistema indica usuario duplicado
+            if (message.type === 'system' && message.message_content && message.message_content.includes('ya está conectado')) {
+                alert('Ese nombre de usuario ya está en uso. Elige otro.');
+                chatContainer.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                sendButton.disabled = true;
+                if (socket) { socket.close(); }
+                return;
+            }
+            
             const messageElement = document.createElement('div');
             
             if (message.type === 'system') {
                 messageElement.className = 'message system';
                 messageElement.innerHTML = `
-                    <div class="message-header">
-                        <span class="username">🔧 Sistema</span>
-                        <span class="timestamp">${message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : ''}</span>
-                    </div>
-                    <div class="message-content">${escapeHtml(message.message_content || '')}</div>
+                    <div style="text-align: center;">
+                        ${escapeHtml(message.message_content || '')} 
+                        <span style="margin-left: 20px;">${message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : ''}</span>
+                    </div>                
                 `;
             } else {
                 // Determinar si es el usuario principal o un usuario externo
@@ -602,6 +704,13 @@
         usernameLogin.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 connectToChat();
+            }
+        });
+
+        // Limpiar error al escribir
+        usernameLogin.addEventListener('input', function() {
+            if (!errorMessage.classList.contains('hidden')) {
+                errorMessage.classList.add('hidden');
             }
         });
 
