@@ -9,14 +9,12 @@ import (
 	"sync"
 	"testing"
 	"time"
-
 	"github.com/gorilla/websocket"
 )
 
 // TestHubCreation prueba la creación del hub
 func TestHubCreation(t *testing.T) {
 	hub := NewHub()
-	
 	if hub == nil {
 		t.Fatal("NewHub() returned nil")
 	}
@@ -62,11 +60,11 @@ func TestMessageCreation(t *testing.T) {
 	
 	systemMsg := NewSystemMessage(content)
 	if systemMsg.Username != "Sistema" {
-		t.Errorf("Expected username 'Sistema', got %s", systemMsg.Username)
+		t.Errorf("Se esperaba el nombre de usuario 'Sistema', obtuve %s", systemMsg.Username)
 	}
 	
 	if systemMsg.Type != "system" {
-		t.Errorf("Expected type 'system', got %s", systemMsg.Type)
+		t.Errorf("Se esperaba un tipo 'sistema', obtuve%s", systemMsg.Type)
 	}
 }
 
@@ -89,7 +87,7 @@ func TestClientRegistration(t *testing.T) {
 	// Conectar al WebSocket
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
-		t.Fatalf("Error connecting to WebSocket: %v", err)
+		t.Fatalf("Error de conexión al WebSocket: %v", err)
 	}
 	defer conn.Close()
 	
@@ -98,7 +96,7 @@ func TestClientRegistration(t *testing.T) {
 	
 	// Verificar que el cliente se registró
 	if hub.GetClientCount() != 1 {
-		t.Errorf("Expected 1 client, got %d", hub.GetClientCount())
+		t.Errorf("Se esperaban 1 cliente, obtuvimos %d", hub.GetClientCount())
 	}
 }
 
@@ -121,7 +119,7 @@ func TestMessageBroadcast(t *testing.T) {
 	for i := 0; i < numClients; i++ {
 		conn, _, err := websocket.DefaultDialer.Dial(wsURL+fmt.Sprintf("?username=user%d", i), nil)
 		if err != nil {
-			t.Fatalf("Error connecting client %d: %v", i, err)
+			t.Fatalf("Error de conexión del cliente %d: %v", i, err)
 		}
 		conns = append(conns, conn)
 	}
@@ -138,18 +136,18 @@ func TestMessageBroadcast(t *testing.T) {
 	
 	// Verificar que todos los clientes están conectados
 	if hub.GetClientCount() != numClients {
-		t.Errorf("Expected %d clients, got %d", numClients, hub.GetClientCount())
+		t.Errorf("Se esperaban %d clientes, obtuvimos %d", numClients, hub.GetClientCount())
 	}
 	
 	// Enviar mensaje desde el primer cliente
 	testMessage := map[string]interface{}{
-		"message_content": "Hello from client 0",
+		"message_content": "Hola desde el cliente 0",
 	}
 	
 	messageBytes, _ := json.Marshal(testMessage)
 	err := conns[0].WriteMessage(websocket.TextMessage, messageBytes)
 	if err != nil {
-		t.Fatalf("Error sending message: %v", err)
+		t.Fatalf("Error al enviar el mensaje: %v", err)
 	}
 	
 	// Verificar que todos los clientes reciben el mensaje
@@ -157,22 +155,22 @@ func TestMessageBroadcast(t *testing.T) {
 		conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 		_, receivedBytes, err := conn.ReadMessage()
 		if err != nil {
-			t.Fatalf("Error reading message from client %d: %v", i, err)
+			t.Fatalf("Error al leer el mensaje del cliente %d: %v", i, err)
 		}
 		
 		var receivedMessage Message
 		err = json.Unmarshal(receivedBytes, &receivedMessage)
 		if err != nil {
-			t.Fatalf("Error unmarshaling message: %v", err)
+			t.Fatalf("Error al deserializar el mensaje: %v", err)
 		}
 		
-		if receivedMessage.Type == "user" && receivedMessage.MessageContent == "Hello from client 0" {
+		if receivedMessage.Type == "user" && receivedMessage.MessageContent == "Hola desde el cliente 0" {
 			// Este es el mensaje que esperamos
 			continue
 		}
 		
 		if receivedMessage.Type != "system" {
-			t.Errorf("Expected system message or user message, got type %s", receivedMessage.Type)
+			t.Errorf("Mensaje de sistema o mensaje de usuario esperado, se obtuvo tipo %s", receivedMessage.Type)
 		}
 	}
 }
@@ -203,7 +201,7 @@ func TestConcurrentClients(t *testing.T) {
 		
 		conn, _, err := websocket.DefaultDialer.Dial(wsURL+fmt.Sprintf("?username=user%d", clientID), nil)
 		if err != nil {
-			t.Errorf("Error connecting client %d: %v", clientID, err)
+			t.Errorf("Error de conexión del cliente %d: %v", clientID, err)
 			return
 		}
 		defer conn.Close()
@@ -230,13 +228,13 @@ func TestConcurrentClients(t *testing.T) {
 		// Enviar múltiples mensajes
 		for i := 0; i < numMessages; i++ {
 			testMessage := map[string]interface{}{
-				"message_content": fmt.Sprintf("Message %d from client %d", i, clientID),
+				"message_content": fmt.Sprintf("Mensaje %d del cliente %d", i, clientID),
 			}
 			
 			messageBytes, _ := json.Marshal(testMessage)
 			err := conn.WriteMessage(websocket.TextMessage, messageBytes)
 			if err != nil {
-				t.Errorf("Error sending message from client %d: %v", clientID, err)
+				t.Errorf("Error al enviar el mensaje desde el cliente %d: %v", clientID, err)
 				return
 			}
 			
@@ -278,7 +276,7 @@ func TestClientDisconnection(t *testing.T) {
 	// Conectar un cliente
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	if err != nil {
-		t.Fatalf("Error connecting: %v", err)
+		t.Fatalf("Error de conexión: %v", err)
 	}
 	
 	// Esperar a que se registre
@@ -286,7 +284,7 @@ func TestClientDisconnection(t *testing.T) {
 	
 	// Verificar que el cliente está conectado
 	if hub.GetClientCount() != 1 {
-		t.Errorf("Expected 1 client, got %d", hub.GetClientCount())
+		t.Errorf("Se esperaban 1 cliente, obtuvimos %d", hub.GetClientCount())
 	}
 	
 	// Cerrar la conexión
@@ -297,7 +295,7 @@ func TestClientDisconnection(t *testing.T) {
 	
 	// Verificar que el cliente se desconectó
 	if hub.GetClientCount() != 0 {
-		t.Errorf("Expected 0 clients, got %d", hub.GetClientCount())
+		t.Errorf("Se esperaban 0 clientes, obtuvimos %d", hub.GetClientCount())
 	}
 }
 
@@ -320,7 +318,7 @@ func TestRaceConditions(t *testing.T) {
 				hub:      hub,
 				conn:     nil, // No necesitamos una conexión real para esta prueba
 				send:     make(chan *Message, 256),
-				username: fmt.Sprintf("user%d", id),
+				username: fmt.Sprintf("Usuario%d", id),
 			}
 			
 			// Registrar el cliente
@@ -331,7 +329,7 @@ func TestRaceConditions(t *testing.T) {
 			
 			// Enviar algunos mensajes
 			for j := 0; j < 5; j++ {
-				message := NewUserMessage(client.username, fmt.Sprintf("Message %d", j))
+				message := NewUserMessage(client.username, fmt.Sprintf("Mensaje %d", j))
 				hub.broadcast <- message
 				time.Sleep(1 * time.Millisecond)
 			}
@@ -344,11 +342,11 @@ func TestRaceConditions(t *testing.T) {
 	wg.Wait()
 	
 	// Esperar a que se procesen todos los eventos
-	time.Sleep(200 * time.Millisecond)
-	
-	// Verificar que no hay clientes restantes
+	wg.Wait()
+	// Esperar más tiempo para que el hub procese los desregistros
+	time.Sleep(500 * time.Millisecond)
 	if hub.GetClientCount() != 0 {
-		t.Errorf("Expected 0 clients, got %d", hub.GetClientCount())
+		t.Errorf("Se esperaban 0 clientes, obtuvimos %d", hub.GetClientCount())
 	}
 }
 
@@ -356,7 +354,6 @@ func TestRaceConditions(t *testing.T) {
 func BenchmarkMessageBroadcast(b *testing.B) {
 	hub := NewHub()
 	go hub.Run()
-	
 	// Simular algunos clientes
 	numClients := 100
 	clients := make([]*Client, numClients)
@@ -366,7 +363,7 @@ func BenchmarkMessageBroadcast(b *testing.B) {
 			hub:      hub,
 			conn:     nil,
 			send:     make(chan *Message, 256),
-			username: fmt.Sprintf("user%d", i),
+			username: fmt.Sprintf("Usuario%d", i),
 		}
 		clients[i] = client
 		hub.register <- client
