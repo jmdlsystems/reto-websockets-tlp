@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -18,17 +17,14 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Cliente WebSocket
+
 type Client struct {
 	// Hub de chat al que pertenece este cliente
 	hub *Hub
-	
 	// Conexión WebSocket
 	conn *websocket.Conn
-	
 	// Canal para enviar mensajes al cliente
 	send chan *Message
-	
 	// Nombre de usuario del cliente
 	username string
 }
@@ -72,7 +68,7 @@ func (c *Client) readPump() {
 		// Parsear el mensaje JSON
 		var rawMessage map[string]interface{}
 		if err := json.Unmarshal(messageBytes, &rawMessage); err != nil {
-			log.Printf("[readPump] Error parsing message: %v", err)
+			log.Printf("[readPump] Error al Parsear Mensaje: %v", err)
 			continue
 		}
 		// Crear el mensaje con el username del cliente
@@ -106,7 +102,7 @@ func (c *Client) writePump() {
 			log.Printf("[writePump] Enviando mensaje a %s: %+v", c.username, message)
 			// Enviar el mensaje como JSON
 			if err := c.conn.WriteJSON(message); err != nil {
-				log.Printf("[writePump] Error sending message: %v", err)
+				log.Printf("[writePump] Error al enviar mensaje: %v", err)
 				return
 			}
 		case <-ticker.C:
@@ -135,16 +131,15 @@ func ServeWS(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Crear el cliente
     // Crear el cliente
     client := NewClient(hub, conn, username)
 
     // Registrar el cliente en el hub ANTES de iniciar las goroutines
-    
+    client.hub.register <- client
     // Iniciar las goroutines para leer y escribir
     go client.writePump()
     go client.readPump()
 
-	client.hub.register <- client
+	
 
 }
