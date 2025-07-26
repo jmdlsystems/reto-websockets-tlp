@@ -37,7 +37,7 @@ func envioImagen(username, content, imagenData, imagenType string) *Message {
 		Username:       username,
 		MessageContent: content,
 		Timestamp:      time.Now(),
-		Type:           "image",
+		Type:           "user",
 		ImagenData:     imagenData,
 		ImagenType:     imagenType,
 	}

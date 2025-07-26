@@ -378,6 +378,7 @@
             mostrarUsuario: document.getElementById('mostrarUsuario'),
             campoMensaje: document.getElementById('campoMensaje'),
             botonEnvio: document.getElementById('botonEnvio'),
+            botonImagen: document.getElementById('botonImagen'),
             zonaMensajes: document.getElementById('zonaMensajes'),
             estadoConexion: document.getElementById('estadoConexion'),
             mensajeError: document.getElementById('mensajeError'),
@@ -428,6 +429,7 @@
                 elementosDOM.mostrarUsuario.textContent = `👤 ${nombreUsuario}`;
                 
                 elementosDOM.botonEnvio.disabled = false;
+                elementosDOM.botonImagen.disabled = false;
                 elementosDOM.campoMensaje.focus();
             };
         
@@ -460,6 +462,7 @@
                 estadoConectado = false;
                 actualizarIndicadorConexion();
                 elementosDOM.botonEnvio.disabled = true;
+                elementosDOM.botonImagen.disabled = true;
                 
                 if (!intentoConexion || evento.code === 1008) {
                     manejarUsuarioExistente('No fue posible conectarse');
@@ -498,6 +501,7 @@
             estadoConectado = false;
             intentoConexion = false;
             elementosDOM.botonEnvio.disabled = true;
+            elementosDOM.botonImagen.disabled = true;
             elementosDOM.botonConectar.disabled = false;
             elementosDOM.botonConectar.textContent = 'Acceder al Chat';
             
