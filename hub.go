@@ -28,7 +28,7 @@ func NewHub() *Hub {
 
 // Run ejecuta el bucle principal del hub
 func (h *Hub) Run() {
-	log.Println("Hub iniciado - procesando eventos...")
+	log.Println("Iniciando el nodo principal del chat")
 	for {
 		select {
 		case client := <-h.register:
