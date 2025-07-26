@@ -2,23 +2,17 @@ package main
 
 import (
 	"fmt"
-	"time"
-	"sync"
 	"log"
-
+	"sync"
+	"time"
 )
 
 // Hub mantiene el conjunto de clientes activos y difunde mensajes
 type Hub struct {
-	// Clientes registrados
-	clients map[*Client]bool
-	// Canal para mensajes que se difunden a todos los clientes
-	broadcast chan *Message
-	// Canal para registrar nuevos clientes
-	register chan *Client
-	// Canal para desregistrar clientes
-	unregister chan *Client
-	// Mutex para proteger el acceso concurrente a los clientes
+	clients      map[*Client]bool
+	broadcast    chan *Message
+	register     chan *Client
+	unregister   chan *Client
 	clientsMutex sync.RWMutex
 }
 
