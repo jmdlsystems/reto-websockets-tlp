@@ -39,11 +39,11 @@ func (h *Hub) Run() {
 		case client := <-h.register:
 			// Registrar nuevo cliente
 			h.registerClient(client)
-			
+
 		case client := <-h.unregister:
 			// Desregistrar cliente
 			h.unregisterClient(client)
-			
+
 		case message := <-h.broadcast:
 			// Difundir mensaje a todos los clientes
 			h.broadcastMessage(message)
@@ -53,36 +53,34 @@ func (h *Hub) Run() {
 
 // registerClient registra un nuevo cliente
 func (h *Hub) registerClient(client *Client) {
-    h.clientsMutex.Lock()
+	h.clientsMutex.Lock()
 	for c := range h.clients {
-        if c.username == client.username {
-            h.clientsMutex.Unlock()
-            // Enviar mensaje de error y cerrar la conexión
-            go func() {
-                errMsg := NewSystemMessage("Este nombre de usuario ya está conectado. Elige otro.")
-                client.send <- errMsg
-                close(client.send)
-            }()
-            return
-        }
-    }
-    h.clients[client] = true
-    clientCount := len(h.clients)
-    h.clientsMutex.Unlock()
-    
-    log.Printf("Cliente %s conectado. Total de clientes: %d", client.username, clientCount)
-    
-    // Notificar a todos los clientes que alguien se conectó
-    systemMessage := NewSystemMessage(fmt.Sprintf("%s se ha conectado", client.username))
-    
-    // Envío asíncrono para evitar bloqueos
-    go func() {
-        select {
-        case h.broadcast <- systemMessage:
-        case <-time.After(time.Second):
-            log.Printf("Timeout enviando mensaje de conexión para %s", client.username)
-        }
-    }()
+		if c.username == client.username {
+			h.clientsMutex.Unlock()
+			// Enviar mensaje de error y cerrar la conexión
+			go func() {
+				errMsg := NewSystemMessage("Este nombre de usuario ya está conectado. Elige otro.")
+				client.send <- errMsg
+				close(client.send)
+			}()
+			return
+		}
+	}
+	h.clients[client] = true
+	clientCount := len(h.clients)
+	h.clientsMutex.Unlock()
+
+	log.Printf("Cliente %s conectado. Total de clientes: %d", client.username, clientCount)
+	// Notificar a todos los clientes que alguien se conectó
+	systemMessage := NewSystemMessage(fmt.Sprintf("%s se ha conectado", client.username))
+	// Envío asíncrono para evitar bloqueos
+	go func() {
+		select {
+		case h.broadcast <- systemMessage:
+		case <-time.After(time.Second):
+			log.Printf("Timeout enviando mensaje de conexión para %s", client.username)
+		}
+	}()
 }
 
 // unregisterClient desregistra un cliente
@@ -93,13 +91,12 @@ func (h *Hub) unregisterClient(client *Client) {
 		//Cierre seguro del canal
 		select {
 		case <-client.send:
-			// Canal ya cerrado
 		default:
 			close(client.send)
 		}
 		clientCount := len(h.clients)
 		h.clientsMutex.Unlock()
-		
+
 		log.Printf("Cliente %s desconectado. Total de clientes: %d", client.username, clientCount)
 		// Notificar a todos los clientes que alguien se desconectó
 		systemMessage := NewSystemMessage(fmt.Sprintf("%s se ha desconectado", client.username))
@@ -120,39 +117,39 @@ func (h *Hub) unregisterClient(client *Client) {
 func (h *Hub) broadcastMessage(message *Message) {
 	h.clientsMutex.RLock()
 	// Crear una copia de los clientes para evitar problemas de concurrencia
-	clientsCopy := make([]*Client, 0, len(h.clients))
+	copiaClientes := make([]*Client, 0, len(h.clients))
 	for client := range h.clients {
-		clientsCopy = append(clientsCopy, client)
+		copiaClientes = append(copiaClientes, client)
 	}
-	
+
 	h.clientsMutex.RUnlock()
 
-	log.Printf("Difundiendo mensaje a %d clientes: [%s] %s", 
-		len(clientsCopy), message.Username, message.MessageContent)
-	
+	log.Printf("Difundiendo mensaje a %d clientes: [%s] %s",
+		len(copiaClientes), message.Username, message.MessageContent)
+
 	// Lista de clientes que fallan para desconectar después
-	var failedClients []*Client
-	
+	var clientesFallados []*Client
+
 	// Enviar el mensaje a todos los clientes
-	for _, client := range clientsCopy {
+	for _, client := range copiaClientes {
 		select {
 		case client.send <- message:
 			log.Printf("Mensaje enviado a %s", client.username)
 		case <-time.After(100 * time.Millisecond):
 			// CORREGIDO: Timeout en lugar de default inmediato
 			log.Printf("Timeout enviando mensaje a %s, marcando para desconexión", client.username)
-			failedClients = append(failedClients, client)
+			clientesFallados = append(clientesFallados, client)
 		}
 	}
-	
+
 	//  Desconectar clientes que fallaron de forma asíncrona
-	if len(failedClients) > 0 {
+	if len(clientesFallados) > 0 {
 		go func() {
-			for _, client := range failedClients {
+			for _, client := range clientesFallados {
 				select {
 				case h.unregister <- client:
 				case <-time.After(time.Second):
-					log.Printf("⚠️ Timeout desregistrando cliente %s", client.username)
+					log.Printf("Timeout desregistrando cliente %s", client.username)
 				}
 			}
 		}()
@@ -166,16 +163,14 @@ func (h *Hub) GetClientCount() int {
 	return len(h.clients)
 }
 
-// AGREGADO: Metodo para obtener lista de usuarios conectados
-
+// Metodo para obtener lista de usuarios conectados
 func (h *Hub) GetConnectedClients() []string {
 	h.clientsMutex.RLock()
 	defer h.clientsMutex.RUnlock()
-	
 	usernames := make([]string, 0, len(h.clients))
 	for client := range h.clients {
 		usernames = append(usernames, client.username)
 	}
-	
+
 	return usernames
 }
