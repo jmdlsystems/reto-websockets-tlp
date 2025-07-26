@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat en Tiempo Real</title>
+    <title>Sistema de Mensajería Instantánea</title>
     <style>
         * {
             margin: 0;
@@ -12,704 +12,540 @@
         }
 
         :root {
-            --primary-color: #4a90e2;
-            --primary-dark: #357abd;
-            --bg-color: #f0f2f5;
-            --white: #ffffff;
-            --border-color: #e1e8ed;
-            --text-primary: #333;
-            --text-secondary: #666;
-            --success-color: #4caf50;
-            --error-color: #f44336;
-            --user-bg: #e3f2fd;
-            --user-border: #2196f3;
-            --other-user-bg: #f5f5f5;
-            --other-user-border: #9e9e9e;
-            --system-bg: #fff3e0;
-            --system-border: #ff9800;
-            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            --border-radius: 12px;
-            --transition: all 0.3s ease;
+            --color-principal: #2563eb;
+            --color-secundario: #1d4ed8;
+            --fondo-principal: #f8fafc;
+            --color-blanco: #ffffff;
+            --borde-color: #d1d5db;
+            --texto-primario: #374151;
+            --texto-secundario: #6b7280;
+            --color-exito: #059669;
+            --color-alerta: #dc2626;
+            --fondo-usuario: #dbeafe;
+            --borde-usuario: #3b82f6;
+            --fondo-otro: #f3f4f6;
+            --borde-otro: #9ca3af;
+            --fondo-sistema: #fef3c7;
+            --borde-sistema: #f59e0b;
+            --sombra-principal: 0 4px 6px rgba(0, 0, 0, 0.07);
+            --radio-borde: 8px;
+            --transicion: all 0.2s ease;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
             min-height: 100vh;
-            padding: 10px;
+            padding: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            align-items: center;
-            min-height: 100vh;
         }
 
-        /* === CONTENEDOR DEL CHAT === */
-        .chat-container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        .contenedor-principal {
+            background: var(--color-blanco);
+            border-radius: var(--radio-borde);
+            box-shadow: var(--sombra-principal);
             width: 100%;
-            max-width: 600px;
-            height: 90vh;
-            max-height: 600px;
+            max-width: 650px;
+            height: 85vh;
+            max-height: 650px;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            position: relative;
         }
 
-        .chat-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            color: var(--white);
-            padding: 1rem;
+        .cabecera-chat {
+            background: linear-gradient(135deg, var(--color-principal), var(--color-secundario));
+            color: var(--color-blanco);
+            padding: 1.2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-shrink: 0;
         }
 
-        .chat-header h1 {
-            font-size: 1.125rem;
-            font-weight: 600;
+        .cabecera-chat h1 {
+            font-size: 1.1rem;
+            font-weight: 500;
             margin: 0;
         }
 
-        .connection-status {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.2);
-            transition: var(--transition);
+        .indicador-conexion {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            transition: var(--transicion);
         }
 
-        .connected {
-            background: var(--white);
+        .estado-conectado {
+            background: var(--color-exito);
         }
 
-        .disconnected {
-            background: var(--white);
+        .estado-desconectado {
+            background: var(--color-alerta);
         }
 
-        .chat-messages {
+        .area-mensajes {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem;
-            background: #fafbfc;
-            position: relative;
+            padding: 1.2rem;
+            background: #fdfdfd;
         }
 
-        .message {
-            margin-bottom: 1rem;
-            padding: 0.875rem 1rem;
-            border-radius: 12px;
-            max-width: 85%;
+        .mensaje {
+            margin-bottom: 1.2rem;
+            padding: 0.9rem 1.1rem;
+            border-radius: var(--radio-borde);
+            max-width: 80%;
             word-wrap: break-word;
-            position: relative;
-            animation: fadeIn 0.3s ease;
+            animation: aparecerMensaje 0.25s ease;
             clear: both;
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+        @keyframes aparecerMensaje {
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* Mensaje del usuario principal (derecha) */
-        .message.own {
-            background: var(--user-bg);
-            border-left: 4px solid var(--user-border);
+        .mensaje.propio {
+            background: var(--fondo-usuario);
+            border-left: 3px solid var(--borde-usuario);
             margin-left: auto;
             float: right;
         }
 
-        /* Mensaje de otros usuarios (izquierda) */
-        .message.other {
-            background: var(--other-user-bg);
-            border-left: 4px solid var(--other-user-border);
+        .mensaje.ajeno {
+            background: var(--fondo-otro);
+            border-left: 3px solid var(--borde-otro);
             margin-right: auto;
             float: left;
         }
 
-        /* Mensaje del sistema (centro) */
-        .message.system {
-            background: var(--system-bg);
-            border-left: 4px solid var(--system-border);
+        .mensaje.sistema {
+            background: var(--fondo-sistema);
+            border-left: 3px solid var(--borde-sistema);
             font-style: italic;
             margin: 0 auto;
             float: none;
-            max-width: 90%;
+            max-width: 85%;
         }
 
-        .message-header {
+        .encabezado-mensaje {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             font-size: 0.75rem;
-            color: var(--text-secondary);
+            color: var(--texto-secundario);
         }
 
-        .username {
+        .nombre-usuario {
             font-weight: 600;
-            color: var(--primary-color);
+            color: var(--color-principal);
         }
 
-        .timestamp {
-            opacity: 0.7;
+        .hora-mensaje {
+            opacity: 0.75;
         }
 
-        .message-content {
-            font-size: 0.875rem;
-            color: var(--text-primary);
-            line-height: 1.4;
+        .contenido-mensaje {
+            font-size: 0.85rem;
+            color: var(--texto-primario);
+            line-height: 1.3;
         }
 
-        /* === ÁREA DE INPUT === */
-        .chat-input {
+        .zona-entrada {
             display: flex;
-            padding: 15px;
-            background-color: white;
-            border-top: 1px solid #eee;
-            gap: 8px;
+            padding: 18px;
+            background-color: var(--color-blanco);
+            border-top: 1px solid #e5e7eb;
+            gap: 10px;
         }
 
-        .username-input {
-            flex: 0 0 120px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px 0 0 5px;
-            font-size: 14px;
-            min-width: 80px;
-        }
-
-        .message-input {
+        .entrada-mensaje {
             flex: 1;
-            padding: 0.75rem 1rem;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            transition: var(--transition);
+            padding: 0.8rem 1.1rem;
+            border: 2px solid var(--borde-color);
+            border-radius: 6px;
+            font-size: 0.85rem;
+            transition: var(--transicion);
             resize: none;
         }
 
-        .message-input:focus {
+        .entrada-mensaje:focus {
             outline: none;
-            min-width: 0;
+            border-color: var(--color-principal);
         }
 
-        .send-button {
-            padding: 0.75rem 1.5rem;
-            background: var(--primary-color);
-            color: var(--white);
+        .boton-enviar {
+            padding: 0.8rem 1.6rem;
+            background: var(--color-principal);
+            color: var(--color-blanco);
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 600;
-            transition: var(--transition);
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: var(--transicion);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
 
-        .send-button:hover:not(:disabled) {
-            background: var(--primary-dark);
-            transform: translateY(-1px);
+        .boton-enviar:hover:not(:disabled) {
+            background: var(--color-secundario);
         }
 
-        .send-button:disabled {
-            background: #ccc;
+        .boton-enviar:disabled {
+            background: #9ca3af;
             cursor: not-allowed;
-            transform: none;
         }
 
-        .connection-status {
-            padding: 10px;
-            text-align: center;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .connected {
-            color: #4caf50;
-        }
-
-        .disconnected {
-            color: #f44336;
-        }
-
-        .login-form {
+        .formulario-acceso {
             display: flex;
             flex-direction: column;
-            gap: 15px;
-            padding: 20px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            gap: 18px;
+            padding: 25px;
+            background: var(--color-blanco);
+            border-radius: var(--radio-borde);
+            box-shadow: var(--sombra-principal);
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
         }
 
-        .login-form h2 {
+        .formulario-acceso h2 {
             text-align: center;
-            color: #4a90e2;
-            margin-bottom: 10px;
+            color: var(--color-principal);
+            margin-bottom: 8px;
         }
 
-        .login-form input {
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+        .formulario-acceso input {
+            padding: 14px;
+            border: 1px solid var(--borde-color);
+            border-radius: 6px;
             font-size: 16px;
         }
 
-        .login-form button {
-            padding: 12px;
-            background-color: #4a90e2;
-            color: white;
+        .formulario-acceso button {
+            padding: 14px;
+            background-color: var(--color-principal);
+            color: var(--color-blanco);
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s;
+            transition: background-color 0.2s;
         }
 
-        .login-form button:hover {
-            background-color: #357abd;
+        .formulario-acceso button:hover {
+            background-color: var(--color-secundario);
         }
 
-        .hidden {
+        .oculto {
             display: none;
         }
 
-        /* Mensaje de error */
-        .error-message {
-            background-color: #ffebee;
-            color: #c62828;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
-            border: 1px solid #ef9a9a;
+        .alerta-error {
+            background-color: #fef2f2;
+            color: #b91c1c;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            border: 1px solid #fecaca;
             font-size: 14px;
         }
 
-        /* RESPONSIVE DESIGN */
-        @media (max-width: 900px) {
-            .chat-container {
-                max-width: 95vw;
-                height: 80vh;
-                max-height: 500px;
-            }
-        }
-        
-        /* Móviles */
-        @media (max-width: 480px) {
-            body {
-                padding: 0;
-            }
-            
-            .login-form {
-                max-width: 90%;
-                padding: 1.25rem;
-                margin: 1rem;
-            }
-            
-            .login-form h2 {
-                font-size: 1.25rem;
-            }
-            
-            .chat-container {
+        @media (max-width: 768px) {
+            .contenedor-principal {
+                max-width: 100%;
+                height: 100vh;
+                max-height: none;
                 border-radius: 0;
             }
             
-            .chat-header {
-                padding: 0.75rem;
-            }
-            
-            .chat-header h1 {
-                font-size: 0.9rem;
-            }
-            
-            .connection-status {
-                font-size: 0.7rem;
-            }
-            
-            .chat-messages {
-                padding: 0.5rem;
-            }
-            
-            .message {
-                max-width: 95%;
-                padding: 0.625rem;
-                margin-bottom: 0.75rem;
-            }
-            
-            .message-header {
+            .zona-entrada {
                 flex-direction: column;
-                align-items: flex-start;
-                gap: 0.125rem;
+                gap: 8px;
             }
             
-            .chat-input {
-                padding: 0.5rem;
-                flex-direction: column;
-                gap: 0.5rem;
+            .entrada-mensaje {
+                font-size: 16px;
             }
             
-            .message-input {
+            .boton-enviar {
                 width: 100%;
-                font-size: 16px; /* Evita zoom en iOS */
-            }
-            
-            .send-button {
-                width: 100%;
-                padding: 0.875rem;
                 justify-content: center;
             }
         }
-        
-        /* Pantallas muy pequeñas */
-        @media (max-width: 320px) {
-            .login-form {
-                padding: 1rem;
-            }
-            
-            .chat-messages {
-                padding: 0.375rem;
-            }
-            
-            .message {
-                padding: 0.5rem;
-                font-size: 0.8rem;
-            }
-            
-            .message-header {
-                font-size: 0.7rem;
-            }
-        }
-        
-        /* Pantallas grandes */
-        @media (min-width: 1024px) {
-            .chat-container {
-                max-width: 800px;
-                max-height: 700px;
-            }
-            
-            .username-display {
-                display: flex;
-            }
-            
-            .chat-input {
-                padding: 1.25rem;
-            }
-            
-            .message {
-                max-width: 80%;
-            }
-        }
-        
-        /* Pantallas muy grandes */
-        @media (min-width: 1400px) {
-            .chat-container {
-                max-width: 1000px;
-                max-height: 800px;
-            }
+
+        .area-mensajes::-webkit-scrollbar {
+            width: 5px;
         }
 
-        /* Scrollbar personalizada */
-        .chat-messages::-webkit-scrollbar {
-            width: 4px;
+        .area-mensajes::-webkit-scrollbar-track {
+            background: #f8f9fa;
         }
 
-        .chat-messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
-        }
-
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
+        .area-mensajes::-webkit-scrollbar-thumb {
+            background: #ced4da;
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
-    <!-- Formulario de login -->
-    <div id="loginForm" class="login-form">
-        <h2>Bienvenido al Chat</h2>
-        <div id="errorMessage" class="error-message hidden"></div>
-        <input type="text" id="usernameLogin" placeholder="Ingresa tu nombre de usuario" maxlength="20">
-        <button onclick="connectToChat()" id="connectButton">Conectar al Chat</button>
+    <div id="formularioAcceso" class="formulario-acceso">
+        <h2>Acceso al Sistema</h2>
+        <div id="mensajeError" class="alerta-error oculto"></div>
+        <input type="text" id="campoNombre" placeholder="Escriba su nombre de usuario" maxlength="25">
+        <button onclick="iniciarSesion()" id="botonConectar">Acceder al Chat</button>
     </div>
 
-    <!-- Interfaz del chat -->
-    <div id="chatContainer" class="chat-container hidden">
-        <div class="chat-header">
-            <h1>💬 Chat en Tiempo Real</h1>
-            <div class="connection-status" id="connectionStatus">Desconectado</div>
+    <div id="interfazChat" class="contenedor-principal oculto">
+        <div class="cabecera-chat">
+            <h1>💬 Mensajería Instantánea</h1>
+            <div class="indicador-conexion" id="estadoConexion">Sin conexión</div>
         </div>
         
-        <div class="chat-messages" id="chatMessages"></div>
+        <div class="area-mensajes" id="zonaMensajes"></div>
         
-        <div class="chat-input">
-            <div class="username-display" id="usernameDisplay"></div>
-            <input type="text" id="messageInput" class="message-input" placeholder="Escribe tu mensaje..." maxlength="500">
-            <button onclick="sendMessage()" class="send-button" id="sendButton" disabled>
-                <span>📤</span>
+        <div class="zona-entrada">
+            <div id="mostrarUsuario"></div>
+            <input type="text" id="campoMensaje" class="entrada-mensaje" placeholder="Escriba su mensaje aquí..." maxlength="400">
+            <button onclick="enviarMensaje()" class="boton-enviar" id="botonEnvio" disabled>
+                <span>📩</span>
                 <span>Enviar</span>
             </button>
         </div>
     </div>
 
     <script>
-        let socket = null;
-        let username = '';
-        let isConnected = false;
-        let connectionAttempted = false;
+        let conexionWS = null;
+        let nombreUsuario = '';
+        let estadoConectado = false;
+        let intentoConexion = false;
 
-        // Elementos del DOM
-        const loginForm = document.getElementById('loginForm');
-        const chatContainer = document.getElementById('chatContainer');
-        const usernameLogin = document.getElementById('usernameLogin');
-        const usernameDisplay = document.getElementById('usernameDisplay');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const chatMessages = document.getElementById('chatMessages');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const errorMessage = document.getElementById('errorMessage');
-        const connectButton = document.getElementById('connectButton');
+        const elementosDOM = {
+            formulario: document.getElementById('formularioAcceso'),
+            interfaz: document.getElementById('interfazChat'),
+            campoNombre: document.getElementById('campoNombre'),
+            mostrarUsuario: document.getElementById('mostrarUsuario'),
+            campoMensaje: document.getElementById('campoMensaje'),
+            botonEnvio: document.getElementById('botonEnvio'),
+            zonaMensajes: document.getElementById('zonaMensajes'),
+            estadoConexion: document.getElementById('estadoConexion'),
+            mensajeError: document.getElementById('mensajeError'),
+            botonConectar: document.getElementById('botonConectar')
+        };
 
-        // Mostrar mensaje de error
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.remove('hidden');
+        function mostrarAlerta(mensaje) {
+            elementosDOM.mensajeError.textContent = mensaje;
+            elementosDOM.mensajeError.classList.remove('oculto');
             setTimeout(() => {
-                errorMessage.classList.add('hidden');
-            }, 5000);
+                elementosDOM.mensajeError.classList.add('oculto');
+            }, 4500);
         }
 
-        // Conectar al chat
-        function connectToChat() {
-            const inputUsername = usernameLogin.value.trim();
-            if (!inputUsername) {
-                showError('Por favor ingresa un nombre de usuario');
+        function iniciarSesion() {
+            const nombreIngresado = elementosDOM.campoNombre.value.trim();
+            if (!nombreIngresado) {
+                mostrarAlerta('Debe ingresar un nombre de usuario válido');
                 return;
             }
 
-            // Validar que el nombre no contenga caracteres especiales
-            if (!/^[a-zA-Z0-9_\-áéíóúñü\s]+$/i.test(inputUsername)) {
-                showError('El nombre solo puede contener letras, números, guiones y espacios');
+            if (!/^[a-zA-Z0-9_\-áéíóúñü\s]+$/i.test(nombreIngresado)) {
+                mostrarAlerta('El nombre solo admite letras, números y espacios');
                 return;
             }
 
-            username = inputUsername;
-            connectButton.disabled = true;
-            connectButton.textContent = 'Conectando...';
-            connectionAttempted = true;
+            nombreUsuario = nombreIngresado;
+            elementosDOM.botonConectar.disabled = true;
+            elementosDOM.botonConectar.textContent = 'Conectando...';
+            intentoConexion = true;
             
-            // Conectar al WebSocket
-            connectWebSocket();
+            establecerConexion();
         }
 
-        // Conectar al WebSocket
-        function connectWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws?username=${encodeURIComponent(username)}`;
+        function establecerConexion() {
+            const protocolo = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const urlWS = `${protocolo}//${window.location.host}/ws?username=${encodeURIComponent(nombreUsuario)}`;
             
-            socket = new WebSocket(wsUrl);
+            conexionWS = new WebSocket(urlWS);
         
-            socket.onopen = function(event) {
-                console.log('Conectado al servidor WebSocket');
-                isConnected = true;
-                updateConnectionStatus();
+            conexionWS.onopen = function(evento) {
+                console.log('Conexión WebSocket establecida');
+                estadoConectado = true;
+                actualizarIndicadorConexion();
                 
-                // Ocultar formulario de login y mostrar chat
-                loginForm.classList.add('hidden');
-                chatContainer.classList.remove('hidden');
-                usernameDisplay.textContent = `👤 ${username}`;
+                elementosDOM.formulario.classList.add('oculto');
+                elementosDOM.interfaz.classList.remove('oculto');
+                elementosDOM.mostrarUsuario.textContent = `👤 ${nombreUsuario}`;
                 
-                sendButton.disabled = false;
-                messageInput.focus();
+                elementosDOM.botonEnvio.disabled = false;
+                elementosDOM.campoMensaje.focus();
             };
         
-            socket.onmessage = function(event) {
-                console.log('Mensaje recibido del servidor:', event.data);
+            conexionWS.onmessage = function(evento) {
+                console.log('Mensaje del servidor:', evento.data);
                 try {
-                    const message = JSON.parse(event.data);
+                    const mensaje = JSON.parse(evento.data);
                     
-                    // Verificar si es un mensaje de error por usuario duplicado
-                    if (message.type === 'error' && message.error_type === 'duplicate_user') {
-                        usuarioDuplicado(message.message_content);
+                    if (mensaje.type === 'error' && mensaje.error_type === 'duplicate_user') {
+                        manejarUsuarioExistente(mensaje.message_content);
                         return;
                     }
                     
-                    // Verificar si es un mensaje de sistema sobre usuario duplicado
-                    if (message.type === 'system' && message.message_content && 
-                        (message.message_content.includes('ya está conectado') || 
-                         message.message_content.includes('already connected') ||
-                         message.message_content.includes('nombre de usuario ya está en uso'))) {
-                        usuarioDuplicado(message.message_content);
+                    if (mensaje.type === 'system' && mensaje.message_content && 
+                        (mensaje.message_content.includes('ya está conectado') || 
+                         mensaje.message_content.includes('nombre de usuario ya está en uso'))) {
+                        manejarUsuarioExistente(mensaje.message_content);
                         return;
                     }
                     
-                    displayMessage(message);
-                } catch (e) {
-                    console.error('Error al parsear el mensaje:', e, event.data);
-                    showError('Error al recibir mensaje del servidor');
+                    mostrarMensaje(mensaje);
+                } catch (error) {
+                    console.error('Error procesando mensaje:', error, evento.data);
+                    mostrarAlerta('Error procesando respuesta del servidor');
                 }
             };
         
-            socket.onclose = function(event) {
-                console.log('Conexión WebSocket cerrada:', event.code, event.reason);
-                isConnected = false;
-                updateConnectionStatus();
-                sendButton.disabled = true;
+            conexionWS.onclose = function(evento) {
+                console.log('Conexión cerrada:', evento.code, evento.reason);
+                estadoConectado = false;
+                actualizarIndicadorConexion();
+                elementosDOM.botonEnvio.disabled = true;
                 
-                // Si no se había conectado exitosamente, volver al login
-                if (!connectionAttempted || event.code === 1008) { // 1008 = Policy Violation
-                    usuarioDuplicado('No se pudo conectar al chat');
+                if (!intentoConexion || evento.code === 1008) {
+                    manejarUsuarioExistente('No fue posible conectarse');
                     return;
                 }
                 
-                // Intentar reconectar solo si había una conexión exitosa previa
-                if (connectionAttempted) {
-                    setTimeout(connectWebSocket, 3000);
+                if (intentoConexion) {
+                    setTimeout(establecerConexion, 2500);
                 }
             };
         
-            socket.onerror = function(error) {
-                console.error('Error en WebSocket:', error);
-                isConnected = false;
-                updateConnectionStatus();
+            conexionWS.onerror = function(error) {
+                console.error('Error de WebSocket:', error);
+                estadoConectado = false;
+                actualizarIndicadorConexion();
                 
-                if (!connectionAttempted) {
-                    usuarioDuplicado('Error de conexión con el servidor');
+                if (!intentoConexion) {
+                    manejarUsuarioExistente('Error de conexión');
                 }
             };
         }
 
-
-        function usuarioDuplicado(message) {
-            console.log('Usuario duplicado detectado:', message);
-            if (socket) {
-                socket.close();
-                socket = null;
+        function manejarUsuarioExistente(mensaje) {
+            console.log('Usuario duplicado:', mensaje);
+            if (conexionWS) {
+                conexionWS.close();
+                conexionWS = null;
             }
             
-            // Volver al formulario de login
-            chatContainer.classList.add('hidden');
-            loginForm.classList.remove('hidden');
+            elementosDOM.interfaz.classList.add('oculto');
+            elementosDOM.formulario.classList.remove('oculto');
             
-            usernameLogin.value = '';
-            showError('Ese nombre de usuario ya está en uso. Elige otro nombre.');
+            elementosDOM.campoNombre.value = '';
+            mostrarAlerta('El nombre está siendo utilizado. Pruebe con otro.');
             
-            isConnected = false;
-            connectionAttempted = false;
-            sendButton.disabled = true;
-            connectButton.disabled = false;
-            connectButton.textContent = 'Conectar al Chat';
+            estadoConectado = false;
+            intentoConexion = false;
+            elementosDOM.botonEnvio.disabled = true;
+            elementosDOM.botonConectar.disabled = false;
+            elementosDOM.botonConectar.textContent = 'Acceder al Chat';
             
-            usernameLogin.focus();
+            elementosDOM.campoNombre.focus();
         }
 
-        function updateConnectionStatus() {
-            if (isConnected) {
-                connectionStatus.textContent = '🟢 Conectado';
-                connectionStatus.className = 'connection-status connected';
+        function actualizarIndicadorConexion() {
+            if (estadoConectado) {
+                elementosDOM.estadoConexion.textContent = '🟢 En línea';
+                elementosDOM.estadoConexion.className = 'indicador-conexion estado-conectado';
             } else {
-                connectionStatus.textContent = '🔴 Desconectado';
-                connectionStatus.className = 'connection-status disconnected';
+                elementosDOM.estadoConexion.textContent = '🔴 Sin conexión';
+                elementosDOM.estadoConexion.className = 'indicador-conexion estado-desconectado';
             }
         }
 
-        // Enviar mensaje
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (message && socket && isConnected) {
-                const messageObj = {
-                    message_content: message
+        function enviarMensaje() {
+            const textoMensaje = elementosDOM.campoMensaje.value.trim();
+            if (textoMensaje && conexionWS && estadoConectado) {
+                const objetoMensaje = {
+                    message_content: textoMensaje
                 };
                 
-                socket.send(JSON.stringify(messageObj));
-                messageInput.value = '';
-                messageInput.focus();
+                conexionWS.send(JSON.stringify(objetoMensaje));
+                elementosDOM.campoMensaje.value = '';
+                elementosDOM.campoMensaje.focus();
             }
         }
 
-        // Mostrar mensaje en el chat
-        function displayMessage(message) {
-            console.log('Mostrando mensaje:', message);
-            // Validación: si el mensaje de sistema indica usuario duplicado
-            if (message.type === 'system' && message.message_content && message.message_content.includes('ya está conectado')) {
-                alert('Ese nombre de usuario ya está en uso. Elige otro.');
-                chatContainer.classList.add('hidden');
-                loginForm.classList.remove('hidden');
-                sendButton.disabled = true;
-                if (socket) { socket.close(); }
+        function mostrarMensaje(mensaje) {
+            console.log('Mostrando mensaje:', mensaje);
+            
+            if (mensaje.type === 'system' && mensaje.message_content && mensaje.message_content.includes('ya está conectado')) {
+                alert('Nombre en uso. Seleccione otro.');
+                elementosDOM.interfaz.classList.add('oculto');
+                elementosDOM.formulario.classList.remove('oculto');
+                elementosDOM.botonEnvio.disabled = true;
+                if (conexionWS) { conexionWS.close(); }
                 return;
             }
             
-            const messageElement = document.createElement('div');
+            const elementoMensaje = document.createElement('div');
             
-            if (message.type === 'system') {
-                messageElement.className = 'message system';
-                messageElement.innerHTML = `
+            if (mensaje.type === 'system') {
+                elementoMensaje.className = 'mensaje sistema';
+                elementoMensaje.innerHTML = `
                     <div style="text-align: center;">
-                        ${escapeHtml(message.message_content || '')} 
-                        <span style="margin-left: 20px;">${message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : ''}</span>
+                        ${escaparHTML(mensaje.message_content || '')} 
+                        <span style="margin-left: 15px;">${mensaje.timestamp ? new Date(mensaje.timestamp).toLocaleTimeString() : ''}</span>
                     </div>                
                 `;
             } else {
-                // Determinar si es el usuario principal o un usuario externo
-                const isOwnMessage = message.username === username;
-                messageElement.className = `message ${isOwnMessage ? 'own' : 'other'}`;
+                const esMensajePropio = mensaje.username === nombreUsuario;
+                elementoMensaje.className = `mensaje ${esMensajePropio ? 'propio' : 'ajeno'}`;
                 
-                messageElement.innerHTML = `
-                    <div class="message-header">
-                        <span class="username">${isOwnMessage ? '👤 Tú' : '👥 ' + escapeHtml(message.username || '?')}</span>
-                        <span class="timestamp">${message.timestamp ? new Date(message.timestamp).toLocaleTimeString() : ''}</span>
+                elementoMensaje.innerHTML = `
+                    <div class="encabezado-mensaje">
+                        <span class="nombre-usuario">${esMensajePropio ? '👤 Yo' : '👥 ' + escaparHTML(mensaje.username || '?')}</span>
+                        <span class="hora-mensaje">${mensaje.timestamp ? new Date(mensaje.timestamp).toLocaleTimeString() : ''}</span>
                     </div>
-                    <div class="message-content">${escapeHtml(message.message_content || '')}</div>
+                    <div class="contenido-mensaje">${escaparHTML(mensaje.message_content || '')}</div>
                 `;
             }
             
-            chatMessages.appendChild(messageElement);
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+            elementosDOM.zonaMensajes.appendChild(elementoMensaje);
+            elementosDOM.zonaMensajes.scrollTop = elementosDOM.zonaMensajes.scrollHeight;
         }
 
-        // Escapar HTML para prevenir XSS
-        function escapeHtml(text) {
+        function escaparHTML(texto) {
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = texto;
             return div.innerHTML;
         }
 
-        // Event listeners
-        messageInput.addEventListener('keypress', function(e) {
+        elementosDOM.campoMensaje.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                sendMessage();
+                enviarMensaje();
             }
         });
 
-        usernameLogin.addEventListener('keypress', function(e) {
+        elementosDOM.campoNombre.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                connectToChat();
+                iniciarSesion();
             }
         });
 
-        // Limpiar error al escribir
-        usernameLogin.addEventListener('input', function() {
-            if (!errorMessage.classList.contains('hidden')) {
-                errorMessage.classList.add('hidden');
+        elementosDOM.campoNombre.addEventListener('input', function() {
+            if (!elementosDOM.mensajeError.classList.contains('oculto')) {
+                elementosDOM.mensajeError.classList.add('oculto');
             }
         });
 
-        // Enfocar en el input de username al cargar la página
         window.addEventListener('load', function() {
-            usernameLogin.focus();
+            elementosDOM.campoNombre.focus();
         });
 
         if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {

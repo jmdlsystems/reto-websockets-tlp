@@ -10,12 +10,12 @@
 ### 2. Gestión de Clientes Conectados
 - **Archivos:** `hub.go` y `client.go`
 - El `Hub` mantiene un mapa `clients map[*Client]bool` protegido por `sync.RWMutex`.
-- Cada cliente (`Client`) tiene dos goroutines: `readPump()` para leer mensajes entrantes y `writePump()` para enviar mensajes salientes.
+- Cada cliente (`Client`) tiene dos goroutines: `goroutineLectura()` para leer mensajes entrantes y `goroutineEscritura()` para enviar mensajes salientes.
 - El registro y desregistro de clientes se hace mediante canales (`register`, `unregister`).
 
 ### 3. Difusión de Mensajes (Broadcast)
 - **Archivos:** `hub.go`, `message.go`
-- Cuando un cliente envía un mensaje, este se recibe en su `readPump()` y se envía al canal `broadcast` del `Hub`.
+- Cuando un cliente envía un mensaje, este se recibe en su `goroutineLectura()` y se envía al canal `broadcast` del `Hub`.
 - El `Hub` recibe el mensaje y lo reenvía a todos los clientes activos mediante su canal `send`.
 - La struct de mensaje (`Message`) incluye `Username`, `MessageContent` y `Timestamp`.
 
@@ -48,7 +48,7 @@
 - Toda la lógica de concurrencia y difusión está implementada con goroutines, canales y mutexes de Go.
 
 ### 9. Decisiones de Diseño y Reflexión
-- **Modelo de conexión:** Una goroutine para leer (`readPump`) y otra para escribir (`writePump`) por cliente. Comunicación con el hub mediante canales.
+- **Modelo de conexión:** Una goroutine para leer (`goroutineLectura`) y otra para escribir (`goroutineEscritura`) por cliente. Comunicación con el hub mediante canales.
 - **Difusión segura:** El hub usa un lock de lectura (`RLock`) para iterar sobre los clientes al difundir mensajes.
 - **Manejo de desconexiones:** Uso de `defer` y canales para limpiar recursos y cerrar conexiones.
 - **Canales para mensajes:** Canal `broadcast` sin buffer para mensajes globales. Canal `send` con buffer por cliente para evitar bloqueos.
@@ -80,7 +80,7 @@
 |---------------|------------|--------------------------|
 | Servidor WebSocket y ruta `/ws` | main.go, client.go | http.HandleFunc, ServeWS |
 | Gestión de clientes | hub.go, client.go | Hub struct, registerClient, unregisterClient |
-| Goroutines por cliente | client.go | readPump, writePump |
+| Goroutines por cliente | client.go | goroutineLectura, goroutineEscritura |
 | Registro seguro de clientes | hub.go | sync.RWMutex, canales |
 | Difusión de mensajes | hub.go | broadcastMessage |
 | Estructura de mensaje | message.go | Message struct |
