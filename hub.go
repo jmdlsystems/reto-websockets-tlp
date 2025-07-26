@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"sync"
 	"time"
+	"sync"
+	"log"
+
 )
 
 // Hub mantiene el conjunto de clientes activos y difunde mensajes

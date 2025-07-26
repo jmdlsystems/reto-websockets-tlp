@@ -1,11 +1,13 @@
 package main
 
 import (
-	"encoding/json"
-	"log"
+	"github.com/gorilla/websocket"
 	"net/http"
 	"time"
-	"github.com/gorilla/websocket"
+	"encoding/json"
+	"log"
+
+
 )
 
 // Configuración del upgrader WebSocket
