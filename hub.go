@@ -117,6 +117,7 @@ func (h *Hub) broadcastMessage(message *Message) {
 		copiaClientes = append(copiaClientes, client)
 	}
 
+	//subir imagenes. 
 	h.clientsMutex.RUnlock()
 
 	log.Printf("Difundiendo mensaje a %d clientes: [%s] %s",

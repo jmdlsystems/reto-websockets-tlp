@@ -71,8 +71,30 @@ func (c *Client) goroutineLectura() {
 			continue
 		}
 		// Crear el mensaje con el username del cliente
-		message := NewUserMessage(c.username, rawMessage["message_content"].(string))
-		log.Printf("[goroutineLectura] Enviando mensaje al hub: %+v", message)
+		var message *Message
+		
+		// Verificar si es un mensaje con imagen
+		if imagenData, hasImage := rawMessage["imagen_data"].(string); hasImage && imagenData != "" {
+			imagenType := rawMessage["imagen_type"].(string)
+			content := ""
+			if contentVal, ok := rawMessage["message_content"].(string); ok {
+				content = contentVal
+			}
+			
+			// Validar tipo de imagen
+			if !validarTipoImagen(imagenType) {
+				log.Printf("[goroutineLectura] Tipo de imagen no soportado: %s", imagenType)
+				continue
+			}
+			
+			message = envioImagen(c.username, content, imagenData, imagenType)
+			log.Printf("[goroutineLectura] Enviando mensaje con imagen al hub: %+v", message)
+		} else {
+			// Mensaje de texto normal
+			message = NewUserMessage(c.username, rawMessage["message_content"].(string))
+			log.Printf("[goroutineLectura] Enviando mensaje al hub: %+v", message)
+		}
+		
 		// Enviar al hub para broadcast
 		c.hub.broadcast <- message
 	}
