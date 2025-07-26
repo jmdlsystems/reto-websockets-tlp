@@ -84,14 +84,13 @@
         }
 
         .connected {
-            background: var(--success-color);
+            background: var(--white);
         }
 
         .disconnected {
-            background: var(--error-color);
+            background: var(--white);
         }
 
-        /* === ÁREA DE MENSAJES === */
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -543,7 +542,7 @@
                     
                     // Verificar si es un mensaje de error por usuario duplicado
                     if (message.type === 'error' && message.error_type === 'duplicate_user') {
-                        handleDuplicateUser(message.message_content);
+                        usuarioDuplicado(message.message_content);
                         return;
                     }
                     
@@ -552,7 +551,7 @@
                         (message.message_content.includes('ya está conectado') || 
                          message.message_content.includes('already connected') ||
                          message.message_content.includes('nombre de usuario ya está en uso'))) {
-                        handleDuplicateUser(message.message_content);
+                        usuarioDuplicado(message.message_content);
                         return;
                     }
                     
@@ -571,7 +570,7 @@
                 
                 // Si no se había conectado exitosamente, volver al login
                 if (!connectionAttempted || event.code === 1008) { // 1008 = Policy Violation
-                    handleDuplicateUser('No se pudo conectar al chat');
+                    usuarioDuplicado('No se pudo conectar al chat');
                     return;
                 }
                 
@@ -587,16 +586,14 @@
                 updateConnectionStatus();
                 
                 if (!connectionAttempted) {
-                    handleDuplicateUser('Error de conexión con el servidor');
+                    usuarioDuplicado('Error de conexión con el servidor');
                 }
             };
         }
 
-        // Manejar usuario duplicado
-        function handleDuplicateUser(message) {
+
+        function usuarioDuplicado(message) {
             console.log('Usuario duplicado detectado:', message);
-            
-            // Cerrar la conexión si existe
             if (socket) {
                 socket.close();
                 socket = null;
@@ -606,22 +603,18 @@
             chatContainer.classList.add('hidden');
             loginForm.classList.remove('hidden');
             
-            // Limpiar el input y mostrar error
             usernameLogin.value = '';
             showError('Ese nombre de usuario ya está en uso. Elige otro nombre.');
             
-            // Resetear estados
             isConnected = false;
             connectionAttempted = false;
             sendButton.disabled = true;
             connectButton.disabled = false;
             connectButton.textContent = 'Conectar al Chat';
             
-            // Enfocar en el input
             usernameLogin.focus();
         }
 
-        // Actualizar estado de conexión
         function updateConnectionStatus() {
             if (isConnected) {
                 connectionStatus.textContent = '🟢 Conectado';
@@ -719,7 +712,6 @@
             usernameLogin.focus();
         });
 
-        // Prevenir zoom en iOS al enfocar inputs
         if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
             document.addEventListener('focusin', function() {
                 document.body.style.zoom = 1;

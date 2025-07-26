@@ -54,7 +54,7 @@ func (h *Hub) Run() {
 // registerClient registra un nuevo cliente
 func (h *Hub) registerClient(client *Client) {
     h.clientsMutex.Lock()
-    for c := range h.clients {
+	for c := range h.clients {
         if c.username == client.username {
             h.clientsMutex.Unlock()
             // Enviar mensaje de error y cerrar la conexión
@@ -90,7 +90,6 @@ func (h *Hub) unregisterClient(client *Client) {
 	h.clientsMutex.Lock()
 	if _, ok := h.clients[client]; ok {
 		delete(h.clients, client)
-		
 		//Cierre seguro del canal
 		select {
 		case <-client.send:
@@ -98,15 +97,12 @@ func (h *Hub) unregisterClient(client *Client) {
 		default:
 			close(client.send)
 		}
-		
 		clientCount := len(h.clients)
 		h.clientsMutex.Unlock()
 		
 		log.Printf("Cliente %s desconectado. Total de clientes: %d", client.username, clientCount)
-		
 		// Notificar a todos los clientes que alguien se desconectó
 		systemMessage := NewSystemMessage(fmt.Sprintf("%s se ha desconectado", client.username))
-		
 		//Envío asíncrono
 		go func() {
 			select {
@@ -123,7 +119,6 @@ func (h *Hub) unregisterClient(client *Client) {
 // broadcastMessage difunde un mensaje a todos los clientes conectados
 func (h *Hub) broadcastMessage(message *Message) {
 	h.clientsMutex.RLock()
-	
 	// Crear una copia de los clientes para evitar problemas de concurrencia
 	clientsCopy := make([]*Client, 0, len(h.clients))
 	for client := range h.clients {
@@ -150,7 +145,7 @@ func (h *Hub) broadcastMessage(message *Message) {
 		}
 	}
 	
-	// CORREGIDO: Desconectar clientes que fallaron de forma asíncrona
+	//  Desconectar clientes que fallaron de forma asíncrona
 	if len(failedClients) > 0 {
 		go func() {
 			for _, client := range failedClients {

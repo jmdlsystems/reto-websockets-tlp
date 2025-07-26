@@ -1,269 +1,96 @@
-# Chat en Tiempo Real con WebSockets
-
-Una aplicación de chat en tiempo real implementada en Go utilizando WebSockets, diseñada para manejar múltiples clientes concurrentes de forma segura y eficiente.
-
-## Características
-
-- ✅ Comunicación en tiempo real con WebSockets
-- ✅ Soporte para múltiples clientes concurrentes
-- ✅ Mensajes de sistema (conexión/desconexión)
-- ✅ Interfaz web moderna y responsive
-- ✅ Gestión segura de concurrencia
-- ✅ Manejo robusto de errores y desconexiones
-- ✅ Pruebas unitarias completas
-
-## Arquitectura Concurrente
-
-### Componentes Principales
-
-1. **Hub Central**: Coordina todas las operaciones del chat
-2. **Clientes**: Representan las conexiones WebSocket individuales
-3. **Mensajes**: Estructura de datos para la comunicación
-4. **Canales**: Comunicación segura entre goroutines
-
-### Diseño de Concurrencia
-
-#### Hub (chat_room.go)
-El Hub actúa como el núcleo central del sistema de chat:
-
-```go
-type Hub struct {
-    clients    map[*Client]bool  // Registro de clientes activos
-    broadcast  chan *Message     // Canal para difusión de mensajes
-    register   chan *Client      // Canal para registro de nuevos clientes
-    unregister chan *Client      // Canal para desregistro de clientes
-    clientsMutex sync.RWMutex    // Mutex para proteger acceso a clientes
-}
-```
-
-**Goroutines utilizadas:**
-- 1 goroutine principal (`Hub.Run()`) que maneja todos los eventos
-- Procesamiento secuencial de eventos para evitar condiciones de carrera
-
-#### Cliente (client.go)
-Cada cliente WebSocket se maneja con dos goroutines dedicadas:
-
-```go
-type Client struct {
-    hub      *Hub              // Referencia al hub
-    conn     *websocket.Conn   // Conexión WebSocket
-    send     chan *Message     // Canal para mensajes salientes
-    username string            // Nombre del usuario
-}
-```
-
-**Goroutines por cliente:**
-- `readPump()`: Lee mensajes del WebSocket y los envía al hub
-- `writePump()`: Escribe mensajes del canal `send` al WebSocket
-
-### Flujo de Mensajes
-
-1. **Mensaje entrante**: Cliente → readPump → Hub.broadcast
-2. **Procesamiento**: Hub.Run() procesa el mensaje
-3. **Difusión**: Hub → Client.send → writePump → WebSocket
-
-### Seguridad Concurrente
-
-#### Protección del Estado Compartido
-- **sync.RWMutex**: Protege el mapa de clientes activos
-- **Lectura**: Múltiples goroutines pueden leer simultáneamente
-- **Escritura**: Acceso exclusivo para modificaciones
-
-#### Comunicación Inter-Goroutine
-- **Canales con buffer**: `make(chan *Message, 256)` para mensajes salientes
-- **Canales sin buffer**: Para eventos de registro/desregistro
-- **Select statements**: Manejo no bloqueante de canales múltiples
-
-#### Manejo de Desconexiones
-```go
-defer func() {
-    c.hub.unregister <- c
-    c.conn.Close()
-}()
-```
-
-## Decisiones de Diseño
-
-### Elección del Paquete WebSocket
-**Opción elegida**: `github.com/gorilla/websocket`
-
-**Justificación:**
-- Más completo que `golang.org/x/net/websocket`
-- Mejor manejo de errores y timeouts
-- Soporte para ping/pong automático
-- Ampliamente utilizado en la industria
-- Documentación extensa y ejemplos
-
-### Arquitectura de Canales
-
-#### Canales de Difusión
-- **Tipo**: `chan *Message` (sin buffer)
-- **Propósito**: Comunicación directa entre clientes y hub
-- **Justificación**: Evita acumulación de mensajes no procesados
-
-#### Canales de Envío por Cliente
-- **Tipo**: `chan *Message` (con buffer de 256)
-- **Propósito**: Buffer de mensajes salientes por cliente
-- **Justificación**: Permite manejar ráfagas de mensajes sin bloquear el hub
-
-### Manejo de Timeouts
-- **Lectura**: 60 segundos con renovación por pong
-- **Escritura**: 10 segundos por operación
-- **Ping**: Cada 54 segundos para mantener conexión viva
-
-## Instalación y Uso
-
-### Requisitos
-- Go 1.21+
-- Puerto 8080 disponible
-
-### Instalación
-```bash
-# Clonar el repositorio
-git clone <repository-url>
-cd chat-app
-
-# Instalar dependencias
-go mod download
-
-# Ejecutar el servidor
-D:\NOVENO CICLO USS\reto-websockets-tlp>go run main.go
-# command-line-arguments
-.\main.go:10:9: undefined: NewHub
-.\main.go:17:3: undefined: ServeWS
-```
-
-### Uso
-1. Abrir navegador en `http://localhost:8080`
-2. Ingresar nombre de usuario
-3. Comenzar a chatear
-
-## Pruebas
-
-### Ejecutar Pruebas Unitarias
-```bash
-# Pruebas normales
-go test -v
-
-# Pruebas con detección de condiciones de carrera
-go test -race -v
-
-# Benchmarks
-go test -bench=. -v
-```
-
-### Tipos de Pruebas
-- **Funcionales**: Registro/desregistro de clientes
-- **Concurrencia**: Múltiples clientes simultáneos
-- **Rendimiento**: Benchmarks de difusión
-- **Condiciones de carrera**: Detección automática con `-race`
-
-## Estructura del Proyecto
-
-```
-chat-app/
-├── main.go           # Servidor HTTP principal
-├── hub.go            # Lógica del hub central
-├── client.go         # Gestión de clientes WebSocket
-├── message.go        # Estructuras de mensajes
-├── chat_test.go      # Pruebas unitarias
-├── index.html        # Cliente web
-├── go.mod            # Gestión de dependencias
-└── README.md         # Documentación
-```
-
-## Rendimiento
-
-### Métricas de Rendimiento
-- **Clientes concurrentes**: Soporta 1000+ clientes simultáneos
-- **Latencia**: < 1ms para difusión local
-- **Memoria**: ~1KB por cliente activo
-- **CPU**: Uso mínimo en estado idle
-
-### Optimizaciones Implementadas
-- Pool de goroutines implícito (una por cliente)
-- Buffers en canales para evitar bloqueos
-- Mutex de lectura/escritura para acceso eficiente
-- Cierre automático de clientes no responsivos
-
-## Manejo de Errores
-
-### Tipos de Errores Manejados
-- **Conexión perdida**: Detección automática y limpieza
-- **Mensajes malformados**: Validación y descarte
-- **Clientes no responsivos**: Timeout y desconexión forzada
-- **Errores de serialización**: Logging y continuación
-
-### Estrategias de Recuperación
-- **Reconexión automática**: Cliente JavaScript
-- **Limpieza de recursos**: Uso de `defer` statements
-- **Logging**: Registro de errores para debugging
-
-## Limitaciones y Mejoras Futuras
-
-### Limitaciones Actuales
-- Chat de una sola sala global
-- Sin persistencia de mensajes
-- Sin autenticación de usuarios
-- Sin límites de velocidad (rate limiting)
-
-### Mejoras Propuestas
-- Múltiples salas de chat
-- Base de datos para historial
-- Sistema de autenticación
-- Límites de velocidad por usuario
-- Protocolo de chat más rico (emojis, archivos)
-
-## Contribución
-
-Las contribuciones son bienvenidas. Por favor:
-1. Fork el proyecto
-2. Crear una rama para la nueva funcionalidad
-3. Implementar con pruebas
-4. Enviar pull request
-
-## Licencia
-
-Este proyecto está bajo la Licencia MIT.
-
-## Interfaz Web Moderna y Responsive
-
-La interfaz web ha sido rediseñada para ser completamente responsiva y moderna, sin utilizar frameworks externos como Tailwind. Se emplea CSS puro con variables, media queries y técnicas modernas para asegurar una experiencia óptima en cualquier dispositivo:
-
-- **Variables CSS**: Uso de `:root` para definir colores, sombras y radios reutilizables.
-- **Diseño adaptable**: Media queries para pantallas grandes, tablets y móviles.
-- **Componentes visuales**: Inputs, botones y mensajes con estilos modernos y animaciones sutiles.
-- **Scroll personalizado**: Barra de desplazamiento estilizada para el área de mensajes.
-- **Soporte para emojis y avatares**: Mejoras visuales en los nombres de usuario y mensajes del sistema.
-- **Prevención de zoom en iOS**: Ajustes para evitar el zoom automático al enfocar inputs en dispositivos Apple.
-
-### Ejemplo de Responsividad
-
-- En PC: El chat se muestra centrado, con bordes redondeados y sombras.
-- En tablets: El contenedor se ajusta a la pantalla, manteniendo la legibilidad y el espacio.
-- En móviles: El chat ocupa todo el ancho y alto, los inputs y botones se agrandan para facilitar el uso táctil.
-
-## Diseño de Interfaz
-
-La interfaz está compuesta por:
-
-- **Formulario de login**: Centrado, con fondo blanco, sombra y bordes suaves. Inputs y botón grandes y accesibles.
-- **Cabecera del chat**: Barra superior con gradiente, nombre del chat y estado de conexión (con colores y emojis).
-- **Área de mensajes**: Fondo claro, mensajes con animación de aparición, diferenciación visual entre mensajes de usuario y del sistema.
-- **Input de mensaje**: Barra inferior fija, con campo de texto y botón de envío grande y táctil.
-- **Visualización del usuario**: El nombre de usuario se muestra en la barra de input, con icono.
-
-## Accesibilidad y Experiencia de Usuario (UX)
-
-- **Contraste alto**: Colores pensados para buena legibilidad.
-- **Inputs grandes**: Fáciles de usar en pantallas táctiles.
-- **Animaciones suaves**: Mejoran la percepción de interacción sin distraer.
-- **Feedback visual**: Estados de conexión/desconexión claros y visibles.
-- **Soporte para teclado**: Puedes enviar mensajes con Enter y navegar con Tab.
-- **Prevención de zoom en iOS**: Mejora la experiencia en iPhone/iPad.
-
-## Cómo Probar la Responsividad
-
-1. Abre el chat en tu navegador de escritorio y reduce el tamaño de la ventana.
-2. Prueba en un móvil o usa las herramientas de "Vista Responsive" de tu navegador (F12 > Toggle Device Toolbar).
-3. Verifica que todos los elementos se adaptan, los botones son accesibles y el chat sigue siendo usable y atractivo.
+# Chat en Tiempo Real con WebSockets — Explicación y Trazabilidad de Requerimientos
+
+## Cumplimiento del Reto #4: Aplicación de Chat en Tiempo Real con WebSockets
+
+### 1. Servidor WebSockets en Go
+- **Archivo principal:** `main.go`
+- Se utiliza `net/http` para levantar el servidor HTTP y la ruta `/ws` es manejada por la función `ServeWS` (definida en `client.go`), que realiza el upgrade a WebSocket usando `github.com/gorilla/websocket`.
+- **Justificación de la librería:** Se eligió `gorilla/websocket` por su robustez, manejo de errores y soporte de ping/pong automático (ver sección "Decisiones de Diseño").
+
+### 2. Gestión de Clientes Conectados
+- **Archivos:** `hub.go` y `client.go`
+- El `Hub` mantiene un mapa `clients map[*Client]bool` protegido por `sync.RWMutex`.
+- Cada cliente (`Client`) tiene dos goroutines: `readPump()` para leer mensajes entrantes y `writePump()` para enviar mensajes salientes.
+- El registro y desregistro de clientes se hace mediante canales (`register`, `unregister`).
+
+### 3. Difusión de Mensajes (Broadcast)
+- **Archivos:** `hub.go`, `message.go`
+- Cuando un cliente envía un mensaje, este se recibe en su `readPump()` y se envía al canal `broadcast` del `Hub`.
+- El `Hub` recibe el mensaje y lo reenvía a todos los clientes activos mediante su canal `send`.
+- La struct de mensaje (`Message`) incluye `Username`, `MessageContent` y `Timestamp`.
+
+### 4. Manejo de Eventos de Conexión/Desconexión
+- **Archivos:** `hub.go`, `client.go`
+- Al conectar/desconectar un cliente, el `Hub` difunde un mensaje de sistema: "Usuario X se ha conectado/desconectado".
+- El manejo de desconexión se realiza con `defer` y canales, asegurando limpieza de recursos.
+
+### 5. Concurrencia Segura
+- **Archivo:** `hub.go`
+- El acceso al mapa de clientes está protegido por `sync.RWMutex`.
+- Todas las operaciones de registro, desregistro y difusión usan canales y locks para evitar condiciones de carrera.
+- La comunicación entre goroutines se realiza exclusivamente mediante canales (`register`, `unregister`, `broadcast`).
+
+### 6. Front-end Básico (Opcional, pero implementado)
+- **Archivo:** `index.html`
+- HTML + JavaScript puro para conectarse al WebSocket, enviar y recibir mensajes.
+- Interfaz responsiva y moderna, sin frameworks.
+- Muestra mensajes de sistema y de usuario, y valida nombres duplicados mostrando un error si corresponde.
+
+### 7. Manejo de Errores
+- **Archivos:** `client.go`, `hub.go`, `index.html`
+- Manejo de errores de WebSocket (conexión cerrada, errores de red).
+- Validación de mensajes malformados.
+- El frontend muestra alertas si hay errores de conexión o si el nombre de usuario está en uso.
+
+### 8. Restricciones y Cumplimiento
+- No se usan frameworks de chat ni pub/sub externos.
+- El chat es efímero y de una sola sala global.
+- Toda la lógica de concurrencia y difusión está implementada con goroutines, canales y mutexes de Go.
+
+### 9. Decisiones de Diseño y Reflexión
+- **Modelo de conexión:** Una goroutine para leer (`readPump`) y otra para escribir (`writePump`) por cliente. Comunicación con el hub mediante canales.
+- **Difusión segura:** El hub usa un lock de lectura (`RLock`) para iterar sobre los clientes al difundir mensajes.
+- **Manejo de desconexiones:** Uso de `defer` y canales para limpiar recursos y cerrar conexiones.
+- **Canales para mensajes:** Canal `broadcast` sin buffer para mensajes globales. Canal `send` con buffer por cliente para evitar bloqueos.
+- **Comunicación inter-goroutine:** Los mensajes de los clientes se envían al hub por el canal `broadcast`, y el hub los reenvía a todos los clientes.
+
+### 10. Estructura de Archivos y Modularidad
+- `main.go`: Arranque del servidor y rutas HTTP.
+- `hub.go`: Lógica central del chat, registro y difusión.
+- `client.go`: Abstracción y gestión de cada cliente WebSocket.
+- `message.go`: Estructura de los mensajes.
+- `index.html`: Cliente web para pruebas y uso real.
+- `chat_test.go`: Pruebas unitarias y de concurrencia.
+
+### 11. Pruebas y Robustez
+- **Archivo:** `chat_test.go`
+- Pruebas unitarias para registro/desregistro, difusión y concurrencia.
+- Uso de `go test -race` para detectar condiciones de carrera.
+
+### 12. Funcionalidad Extra y UX
+- **Frontend responsivo y accesible.**
+- **Validación de nombres duplicados tanto en backend como frontend.**
+- **Mensajes de sistema claros y feedback visual inmediato.**
+
+---
+
+## Tabla de Trazabilidad de Requerimientos
+
+| Requerimiento | Archivo(s) | Función/Sección relevante |
+|---------------|------------|--------------------------|
+| Servidor WebSocket y ruta `/ws` | main.go, client.go | http.HandleFunc, ServeWS |
+| Gestión de clientes | hub.go, client.go | Hub struct, registerClient, unregisterClient |
+| Goroutines por cliente | client.go | readPump, writePump |
+| Registro seguro de clientes | hub.go | sync.RWMutex, canales |
+| Difusión de mensajes | hub.go | broadcastMessage |
+| Estructura de mensaje | message.go | Message struct |
+| Mensajes de sistema | hub.go | NewSystemMessage, registerClient, unregisterClient |
+| Manejo de desconexiones | client.go, hub.go | defer, unregisterClient |
+| Frontend básico | index.html | Todo el archivo |
+| Validación de duplicados | hub.go, index.html | registerClient, displayMessage |
+| Pruebas unitarias y de concurrencia | chat_test.go | Todo el archivo |
+| Documentación y justificación | README.md | Secciones de arquitectura y decisiones |
+
+---
+
+Esta explicación y tabla te permiten defender y demostrar el cumplimiento de todos los puntos del reto, con referencias claras a tu código y decisiones de diseño.
