@@ -66,7 +66,7 @@ func (h *Hub) registerClient(client *Client) {
 	h.clientsMutex.Unlock()
 
 	log.Printf("Cliente %s conectado. Total de clientes: %d", client.username, clientCount)
-	// Notificar a todos los clientes que alguien se conectó
+	// Notificar a todos los clientes que alguien se conectó a la sala.
 	systemMessage := NewSystemMessage(fmt.Sprintf("%s se ha conectado", client.username))
 	// Envío asíncrono para evitar bloqueos
 	go func() {
@@ -111,7 +111,7 @@ func (h *Hub) unregisterClient(client *Client) {
 // broadcastMessage difunde un mensaje a todos los clientes conectados
 func (h *Hub) broadcastMessage(message *Message) {
 	h.clientsMutex.RLock()
-	// Crear una copia de los clientes para evitar problemas de concurrencia
+	// Se crea una copia de los clientes para evitar problemas de concurrencia
 	copiaClientes := make([]*Client, 0, len(h.clients))
 	for client := range h.clients {
 		copiaClientes = append(copiaClientes, client)
@@ -125,7 +125,7 @@ func (h *Hub) broadcastMessage(message *Message) {
 	// Lista de clientes que fallan para desconectar después
 	var clientesFallados []*Client
 
-	// Enviar el mensaje a todos los clientes
+	// Se envia el mensaje a todos los clientes
 	for _, client := range copiaClientes {
 		select {
 		case client.send <- message:
